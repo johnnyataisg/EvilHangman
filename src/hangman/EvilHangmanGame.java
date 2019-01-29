@@ -10,8 +10,15 @@ public class EvilHangmanGame implements IEvilHangmanGame
     private Set<String> wordList = new HashSet<>();
     private StringBuilder pattern = new StringBuilder();
     private int wordLength;
+    private int guesses;
     private int remainingGuesses;
     private SortedSet<Character> guessedList = new TreeSet<>();
+
+    public EvilHangmanGame()
+    {
+        this.wordLength = 0;
+        this.remainingGuesses = 0;
+    }
 
     public EvilHangmanGame(int guesses)
     {
@@ -21,7 +28,7 @@ public class EvilHangmanGame implements IEvilHangmanGame
             {
                 throw new Exception();
             }
-            this.remainingGuesses = guesses;
+            this.guesses = guesses;
         }
         catch (Exception e)
         {
@@ -42,24 +49,7 @@ public class EvilHangmanGame implements IEvilHangmanGame
         try
         {
             Scanner dictionaryInput = new Scanner(dictionary);
-            if (wordLength < 2)
-            {
-                throw new IllegalArgumentException();
-            }
-            this.wordLength = wordLength;
-            while (dictionaryInput.hasNext())
-            {
-                String wordCandidate = dictionaryInput.next();
-                if (wordCandidate.length() == wordLength)
-                {
-                    this.wordList.add(wordCandidate);
-                }
-            }
-            dictionaryInput.close();
-            for (int i = 0; i < this.wordLength; i++)
-            {
-                this.pattern.append("-");
-            }
+            this.setGameData(dictionaryInput, wordLength);
             Scanner input = new Scanner(System.in);
             while(this.remainingGuesses != 0)
             {
@@ -67,18 +57,11 @@ public class EvilHangmanGame implements IEvilHangmanGame
                 {
                     break;
                 }
-                System.out.println("You have " + this.remainingGuesses + " guesses left");
-                System.out.print("Used letters: ");
-                for (char character : this.guessedList)
-                {
-                    System.out.print(character + " ");
-                }
-                System.out.println();
-                System.out.println("Word: " + this.pattern);
-                System.out.print("Enter a guess: ");
-                String userInput = input.next();
+                this.printDialog();
+                String userInput = input.nextLine();
                 if (userInput.length() == 1 && Character.isLetter(userInput.charAt(0)))
                 {
+                    userInput = userInput.toLowerCase();
                     char guess = userInput.charAt(0);
                     try
                     {
@@ -86,33 +69,11 @@ public class EvilHangmanGame implements IEvilHangmanGame
                     }
                     catch (IEvilHangmanGame.GuessAlreadyMadeException repeatGuess)
                     {
+                        System.out.println("You already used that letter");
                         System.out.println();
                         continue;
                     }
-                    boolean containsLetter = true;
-                    int number = 0;
-                    int index = -1;
-                    for (String word : this.wordList)
-                    {
-                        if (word.indexOf(guess) < 0)
-                        {
-                            containsLetter = false;
-                            break;
-                        }
-                        number = word.length() - word.replace(guess + "", "").length();
-                        index = word.indexOf(guess);
-                    }
-                    if (containsLetter)
-                    {
-                        this.pattern.setCharAt(index, guess);
-                        System.out.println("Yes, there is " + number + " " + guess);
-                    }
-                    else
-                    {
-                        this.remainingGuesses--;
-                        System.out.println("Sorry, there are no " + guess + "\'s");
-                    }
-                    System.out.println();
+                    this.printResult(guess);
                 }
                 else
                 {
@@ -120,19 +81,7 @@ public class EvilHangmanGame implements IEvilHangmanGame
                     System.out.println();
                 }
             }
-            if (this.remainingGuesses == 0)
-            {
-                List<String> newWordList = new ArrayList<String>(this.wordList);
-                Random rand = new Random();
-                int randomInt = rand.nextInt(this.wordList.size());
-                System.out.println("You lose!");
-                System.out.println("The word was: " + newWordList.get(randomInt));
-            }
-            else
-            {
-                System.out.println("You Win!");
-                System.out.println(this.pattern);
-            }
+            this.determineWinLoss();
         }
         catch (IOException invalidFile)
         {
@@ -144,6 +93,79 @@ public class EvilHangmanGame implements IEvilHangmanGame
         }
     }
 
+    public void setGameData(Scanner scanner, int length)
+    {
+        this.remainingGuesses = this.guesses;
+        if (length < 2)
+        {
+            throw new IllegalArgumentException();
+        }
+        this.wordLength = length;
+        while (scanner.hasNext())
+        {
+            String wordCandidate = scanner.next().toLowerCase();
+            if (wordCandidate.length() == this.wordLength)
+            {
+                this.wordList.add(wordCandidate);
+            }
+        }
+        scanner.close();
+        for (int i = 0; i < this.wordLength; i++)
+        {
+            this.pattern.append("-");
+        }
+    }
+
+    public void printDialog()
+    {
+        System.out.println("You have " + this.remainingGuesses + " guesses left");
+        System.out.print("Used letters: ");
+        for (char character : this.guessedList)
+        {
+            System.out.print(character + " ");
+        }
+        System.out.println();
+        System.out.println("Word: " + this.pattern);
+        System.out.print("Enter a guess: ");
+    }
+
+    public void printResult(char guess)
+    {
+        if (this.pattern.indexOf(guess + "") >= 0)
+        {
+            int count = this.pattern.length() - this.pattern.toString().replace(guess + "", "").length();
+            System.out.println("Yes, there is " + count + " " + guess);
+        }
+        else
+        {
+            this.remainingGuesses--;
+            System.out.println("Sorry, there are no " + guess + "\'s");
+        }
+        System.out.println();
+    }
+
+    public void determineWinLoss()
+    {
+        if (this.remainingGuesses == 0)
+        {
+            List<String> newWordList = new ArrayList<String>(this.wordList);
+            Random rand = new Random();
+            int randomInt = rand.nextInt(this.wordList.size());
+            System.out.println("You lose!");
+            System.out.println("The word was: " + newWordList.get(randomInt));
+            System.out.println();
+        }
+        else
+        {
+            System.out.println("You Win!");
+            System.out.println(this.pattern);
+        }
+        this.wordList.clear();
+        this.guessedList.clear();
+        this.pattern = new StringBuilder();
+        this.wordLength = 0;
+    }
+
     public Set<String> makeGuess(char guess) throws IEvilHangmanGame.GuessAlreadyMadeException
     {
         Set<String> output = new HashSet<>();
@@ -153,19 +175,6 @@ public class EvilHangmanGame implements IEvilHangmanGame
         }
         this.guessedList.add(guess);
         output = this.chooseWord(guess);
-        /*try
-        {
-            if (this.guessedList.contains(guess))
-            {
-                throw new GuessAlreadyMadeException();
-            }
-            this.guessedList.add(guess);
-            output = this.chooseWord(guess);
-        }
-        catch (GuessAlreadyMadeException e)
-        {
-            System.out.println("You already used that letter");
-        }*/
         return output;
     }
 
@@ -188,6 +197,13 @@ public class EvilHangmanGame implements IEvilHangmanGame
         }
         for (Entry<String, Set<String>> pair : familyCandidates.entrySet())
         {
+            for (int i = 0; i < pair.getKey().length(); i++)
+            {
+                if (pair.getKey().charAt(i) == guess)
+                {
+                    this.pattern.setCharAt(i, guess);
+                }
+            }
             output = pair.getValue();
         }
         return output;
