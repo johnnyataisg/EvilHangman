@@ -124,8 +124,8 @@ public class EvilHangmanGame implements IEvilHangmanGame
             throw new IEvilHangmanGame.GuessAlreadyMadeException();
         }
         this.guessedList.add(guess);
-        output = this.chooseWord(guess);
-        return output;
+        this.wordList = this.chooseWord(guess);
+        return this.wordList;
     }
 
     public Set<String> chooseWord(char guess)
@@ -267,7 +267,14 @@ public class EvilHangmanGame implements IEvilHangmanGame
             }
             else
             {
-                temp = familyList;
+                if (familyList.size() == 0)
+                {
+                    temp = familyMap;
+                }
+                else
+                {
+                    temp = new HashMap<>(familyList);
+                }
                 familyList.clear();
             }
         }

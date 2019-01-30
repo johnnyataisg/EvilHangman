@@ -1,4 +1,4 @@
-import hangman.*;
+package hangman;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -40,7 +40,7 @@ public class Main
                 char guess = userInput.charAt(0);
                 try
                 {
-                    game.setWordList(game.makeGuess(guess));
+                    game.makeGuess(guess);
                 }
                 catch (IEvilHangmanGame.GuessAlreadyMadeException repeatGuess)
                 {
