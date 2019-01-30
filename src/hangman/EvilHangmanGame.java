@@ -291,6 +291,11 @@ public class EvilHangmanGame implements IEvilHangmanGame
         return result;
     }
 
+    public int getInitialGuesses()
+    {
+	return this.initialGuesses;
+    }
+
     public int getRemainingGuesses()
     {
         return this.remainingGuesses;

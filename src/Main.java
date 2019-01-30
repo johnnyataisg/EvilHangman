@@ -14,7 +14,7 @@ public class Main
         game.startGame(new File(args[0]), Integer.parseInt(args[1]));
 
         Scanner input = new Scanner(System.in);
-        while(1 > 0)
+        while(game.getWordList().size() > 0 && game.getInitialGuesses() > 0)
         {
             if (game.getPattern().indexOf("-") < 0)
             {
