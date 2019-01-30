@@ -10,7 +10,7 @@ public class EvilHangmanGame implements IEvilHangmanGame
     private Set<String> wordList = new HashSet<>();
     private StringBuilder pattern = new StringBuilder();
     private int wordLength;
-    private int guesses;
+    private int initialGuesses;
     private int remainingGuesses;
     private SortedSet<Character> guessedList = new TreeSet<>();
 
@@ -28,7 +28,7 @@ public class EvilHangmanGame implements IEvilHangmanGame
             {
                 throw new Exception();
             }
-            this.guesses = guesses;
+            this.initialGuesses = guesses;
         }
         catch (Exception e)
         {
@@ -46,42 +46,14 @@ public class EvilHangmanGame implements IEvilHangmanGame
 
     public void startGame(File dictionary, int wordLength)
     {
+        this.wordList.clear();
+        this.guessedList.clear();
+        this.pattern = new StringBuilder();
+        this.wordLength = 0;
         try
         {
             Scanner dictionaryInput = new Scanner(dictionary);
             this.setGameData(dictionaryInput, wordLength);
-            Scanner input = new Scanner(System.in);
-            while(this.remainingGuesses != 0)
-            {
-                if (this.pattern.indexOf("-") < 0)
-                {
-                    break;
-                }
-                this.printDialog();
-                String userInput = input.nextLine();
-                if (userInput.length() == 1 && Character.isLetter(userInput.charAt(0)))
-                {
-                    userInput = userInput.toLowerCase();
-                    char guess = userInput.charAt(0);
-                    try
-                    {
-                        this.wordList = this.makeGuess(guess);
-                    }
-                    catch (IEvilHangmanGame.GuessAlreadyMadeException repeatGuess)
-                    {
-                        System.out.println("You already used that letter");
-                        System.out.println();
-                        continue;
-                    }
-                    this.printResult(guess);
-                }
-                else
-                {
-                    System.out.println("Invalid input");
-                    System.out.println();
-                }
-            }
-            this.determineWinLoss();
         }
         catch (IOException invalidFile)
         {
@@ -95,11 +67,11 @@ public class EvilHangmanGame implements IEvilHangmanGame
 
     public void setGameData(Scanner scanner, int length)
     {
-        this.remainingGuesses = this.guesses;
         if (length < 2)
         {
             throw new IllegalArgumentException();
         }
+        this.remainingGuesses = this.initialGuesses;
         this.wordLength = length;
         while (scanner.hasNext())
         {
@@ -142,28 +114,6 @@ public class EvilHangmanGame implements IEvilHangmanGame
             System.out.println("Sorry, there are no " + guess + "\'s");
         }
         System.out.println();
-    }
-
-    public void determineWinLoss()
-    {
-        if (this.remainingGuesses == 0)
-        {
-            List<String> newWordList = new ArrayList<String>(this.wordList);
-            Random rand = new Random();
-            int randomInt = rand.nextInt(this.wordList.size());
-            System.out.println("You lose!");
-            System.out.println("The word was: " + newWordList.get(randomInt));
-            System.out.println();
-        }
-        else
-        {
-            System.out.println("You Win!");
-            System.out.println(this.pattern);
-        }
-        this.wordList.clear();
-        this.guessedList.clear();
-        this.pattern = new StringBuilder();
-        this.wordLength = 0;
     }
 
     public Set<String> makeGuess(char guess) throws IEvilHangmanGame.GuessAlreadyMadeException
@@ -209,6 +159,32 @@ public class EvilHangmanGame implements IEvilHangmanGame
         return output;
     }
 
+    public Map<String, Set<String>> generateFamilies(char letter)
+    {
+        Map<String, Set<String>> familyMap = new HashMap<>();
+        for (String str : this.wordList)
+        {
+            StringBuilder word = new StringBuilder(str);
+            int length = word.length();
+            if (length == this.wordLength)
+            {
+                for (int i = 0; i < length; i++)
+                {
+                    if (word.charAt(i) != letter)
+                    {
+                        word.setCharAt(i, '-');
+                    }
+                }
+                if (!familyMap.containsKey(word.toString()))
+                {
+                    familyMap.put(word.toString(), new TreeSet<>());
+                }
+                familyMap.get(word.toString()).add(str);
+            }
+        }
+        return familyMap;
+    }
+
     public Map<String, Set<String>> findLargestFamilies(Map<String, Set<String>> familyMap)
     {
         Map<String, Set<String>> familyList = new HashMap<>();
@@ -240,6 +216,10 @@ public class EvilHangmanGame implements IEvilHangmanGame
                 familyList.put(pair.getKey(), pair.getValue());
             }
         }
+        if (familyList.size() == 0)
+        {
+            return familyMap;
+        }
         return familyList;
     }
 
@@ -260,6 +240,10 @@ public class EvilHangmanGame implements IEvilHangmanGame
             {
                 familyList.put(pair.getKey(), pair.getValue());
             }
+        }
+        if (familyList.size() == 0)
+        {
+            return familyMap;
         }
         return familyList;
     }
@@ -287,6 +271,10 @@ public class EvilHangmanGame implements IEvilHangmanGame
                 familyList.clear();
             }
         }
+        if (familyList.size() == 0)
+        {
+            return familyMap;
+        }
         return familyList;
     }
 
@@ -303,29 +291,23 @@ public class EvilHangmanGame implements IEvilHangmanGame
         return result;
     }
 
-    public Map<String, Set<String>> generateFamilies(char letter)
+    public int getRemainingGuesses()
     {
-        Map<String, Set<String>> familyMap = new HashMap<>();
-        for (String str : this.wordList)
-        {
-            StringBuilder word = new StringBuilder(str);
-            int length = word.length();
-            if (length == this.wordLength)
-            {
-                for (int i = 0; i < length; i++)
-                {
-                    if (word.charAt(i) != letter)
-                    {
-                        word.setCharAt(i, '-');
-                    }
-                }
-                if (!familyMap.containsKey(word.toString()))
-                {
-                    familyMap.put(word.toString(), new TreeSet<>());
-                }
-                familyMap.get(word.toString()).add(str);
-            }
-        }
-        return familyMap;
+        return this.remainingGuesses;
+    }
+
+    public StringBuilder getPattern()
+    {
+        return this.pattern;
+    }
+
+    public Set<String> getWordList()
+    {
+        return this.wordList;
+    }
+
+    public void setWordList(Set<String> set)
+    {
+        this.wordList = set;
     }
 }
